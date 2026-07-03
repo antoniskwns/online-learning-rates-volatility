@@ -1,5 +1,10 @@
 # Model-Assisted Online Learning for Rates Volatility & Tail Risk
 
+![Jupyter](https://img.shields.io/badge/Jupyter-notebook-F37626?logo=jupyter&logoColor=white)
+![LaTeX](https://img.shields.io/badge/paper-LaTeX-008080?logo=latex&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Topic](https://img.shields.io/badge/topic-online%20learning%20%C2%B7%20VaR-lightgrey)
+
 A **Model-Assisted Online Learning (MAOL)** framework for sequential volatility forecasting
 and Value-at-Risk calibration in government-bond markets. It wraps any parametric volatility
 model in three adaptive layers driven by a **parameter-free** optimizer (Continuous Coin
