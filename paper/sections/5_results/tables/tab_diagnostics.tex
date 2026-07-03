@@ -1,0 +1,13 @@
+\begin{table}[H]
+\centering
+\caption{Diagnostic Tests for MAOL-GARCH (US Treasury, TY). Mincer-Zarnowitz (MZ) regression tests forecast unbiasedness ($H_0: a=0, b=1$, HAC Wald $p$-value). Ljung-Box (LB) $Q$ statistics test for serial correlation in squared standardized residuals $\hat{e}_t^2 = (RV_t/\tilde{h}_t - 1)^2$ at lags 5 (weekly), 22 (monthly), and 66 (quarterly); under $H_0$ of no autocorrelation, $Q(k) \sim \chi^2(k)$.}
+\label{tab:diagnostics}
+\small
+\begin{tabular}{ccccccccc}
+\toprule
+MZ $a$ & MZ $b$ & MZ $p$ & $Q(5)$ & $p$ & $Q(22)$ & $p$ & $Q(66)$ & $p$ \\
+\midrule
+-0.0000 & 1.0582 & 0.0811 & 33.77 & 0.000 & 188.09 & 0.000 & 544.72 & 0.000 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,16 @@
+\begin{table}[H]
+\centering
+\caption{Sample-Length Robustness (10-year windows, US Treasury TY). MAOL-GARCH run independently on each sub-sample from scratch. Regret$/T$ is measured against the within-window HAR oracle. VaR rate is the empirical 5\% exceedance rate.}
+\label{tab:sl_10y}
+\small
+\begin{tabular}{lccccccc}
+\toprule
+Window & Obs & QLIKE & HAR Roll. & EWMA & $R^2$ & Regret$/T$ & VaR rate \\
+\midrule
+1983--1992 & 2,519 & $-9.7685$ & $-9.7768$ & $-9.6767$ & 0.3363 & $+0.00759$ & 0.048 \\
+1993--2002 & 2,502 & $-9.9715$ & $-9.9505$ & $-9.7251$ & 0.3910 & $+0.00397$ & 0.050 \\
+2003--2012 & 3,045 & $-9.9339$ & $-9.9686$ & $-9.7634$ & 0.3907 & $+0.00490$ & 0.047 \\
+2013--2022 & 3,109 & $-10.2784$ & $-10.2573$ & $-9.8285$ & 0.3730 & $+0.00102$ & 0.049 \\
+\bottomrule
+\end{tabular}
+\end{table}

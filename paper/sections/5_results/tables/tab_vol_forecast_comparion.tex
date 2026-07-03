@@ -1,0 +1,25 @@
+\begin{table}[H]
+\centering
+\caption{Variance Forecast Evaluation. QLIKE and $R^2$ on the vol scale vs RW baseline. Regret$/T$ = average per-step QLIKE of MAOL-GARCH minus HAR oracle.}
+\label{tab:results_summary}
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccccr}
+\toprule
+Type & Model & QLIKE & $R^2_{\text{vol}}$ & MZ $a$ & MZ $b$ & MZ $p$ & Regret$/T$ \\
+\midrule
+Sequential & MAOL-GARCH (Student-t) & $-9.9866$ & 0.3699 & -0.0000 & 1.0582 & 0.0811 & $+0.00345$ \\
+Sequential & MAOL-GARCH (Skew-t) & $-9.9866$ & 0.3699 & -0.0000 & 1.0582 & 0.0811 & $+0.00345$ \\
+Sequential & MAOL-HAR (Student-t) & $-9.9859$ & 0.2949 & 0.0000 & 0.5422 & 0.0000 & $+0.00425$ \\
+Sequential & MAOL-Log-GARCH (Student-t) & $-9.9873$ & 0.3641 & -0.0000 & 1.0977 & 0.2201 & $+0.00274$ \\
+Sequential & MAOL-Log-HAR (Student-t) & $-9.9812$ & 0.2966 & 0.0000 & 0.6502 & 0.0000 & $+0.00891$ \\
+Sequential & HAR Rolling (252d) & $-9.9852$ & 0.3459 & 0.0000 & 0.7060 & 0.0001 & $+0.01128$ \\
+Sequential & HAR Expanding & $-9.9940$ & 0.3495 & 0.0000 & 0.9378 & 0.0001 & $+0.00248$ \\
+Sequential & EWMA (RiskMetrics) & $-9.7423$ & 0.2239 & 0.0000 & 0.8164 & 0.0000 & $+0.24822$ \\
+\addlinespace
+Oracle & Full-Sample GARCH (oracle) & $-9.8582$ & 0.2794 & 0.0000 & 0.9656 & 0.0000 & $+0.13198$ \\
+Oracle & Full-Sample HAR (oracle) & $-9.9908$ & 0.3716 & 0.0000 & 1.0000 & 1.0000 & $+0.00000$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

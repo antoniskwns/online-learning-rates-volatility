@@ -1,0 +1,18 @@
+\begin{table}[H]
+\centering
+\caption{Cross-Country Forecast Accuracy. All MAOL models are strictly sequential with no market-specific tuning. QLIKE is the mean quasi-likelihood loss; Regret$/T$ is the average per-step QLIKE relative to the full-sample HAR oracle; $R^2$ is measured on the volatility (square-root) scale against the random walk baseline.}
+\label{tab:cc_forecast}
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcrccccccccc}
+\toprule
+Market & Obs & Sample & MAOL-GARCH & MAOL-HAR & Skew-t & HAR Roll. & HAR Exp. & EWMA & HAR oracle & $R^2$ & Regret/$T$ \\
+\midrule
+US Treasury & 11,731 & 1983--2024 & $-9.9866$ & $-9.9859$ & $-9.9866$ & $-9.9852$ & $-9.9940$ & $-9.7423$ & $-9.9908$ & 0.370 & $+0.00345$ \\
+German Bund & 7,065 & 1997--2024 & $-10.1827$ & $-10.1974$ & $-10.1827$ & $-10.1813$ & $-10.1834$ & $-10.0954$ & $-10.1953$ & 0.155 & $+0.01210$ \\
+UK Gilt & 6,640 & 1998--2024 & $-10.0860$ & $-10.0898$ & $-10.0860$ & $-10.0973$ & $-10.0978$ & $-10.0086$ & $-10.0877$ & 0.171 & $+0.00324$ \\
+Japanese JGB & 5,762 & 2003--2024 & $-11.6994$ & $-11.7241$ & $-11.6994$ & $-10.7647$ & $-11.7658$ & $-11.2970$ & $-11.7231$ & 0.292 & $+0.01481$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

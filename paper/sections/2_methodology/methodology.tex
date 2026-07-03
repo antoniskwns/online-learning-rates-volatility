@@ -1,0 +1,170 @@
+% ══════════════════════════════════════════════════════════════
+\section{Methodology}\label{sec:methodology}
+% ══════════════════════════════════════════════════════════════
+
+The Model-Assisted Online Learning (MAOL) framework rests on a simple observation: parametric volatility models such as GARCH and HAR are good at capturing the broad structure of return volatility, but their fixed parameters make them slow to respond when that structure shifts. Rather than replacing these models, MAOL wraps them in three sequential online learning layers that adapt in real time to whatever the base model leaves unexplained.
+
+The first layer updates the model parameters themselves at each new observation, using a parameter-free gradient step on the QLIKE loss. The second layer applies a multiplicative correction to the variance forecast, tracking any persistent over- or under-prediction that the parameter update alone cannot remove. The third layer recalibrates the predictive distribution in probability space, ensuring that the implied Value-at-Risk (VaR) quantiles achieve the correct empirical coverage over time. Each layer has a formal performance guarantee that requires no stationarity or correct model specification, and the three layers operate independently so that variance forecasting and tail-risk calibration can be evaluated separately.
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Online Learning Framework}\label{sec:olt}
+% ──────────────────────────────────────────────────────────────
+
+Online convex optimisation provides a framework for sequential prediction that requires no assumptions about the data-generating process \citep{hazan2016introduction,cesa2006prediction}. At each round $t$, the forecaster commits to a decision $\hat{y}_t \in \mathcal{D}$ based on past information $\calF_{t-1}$, observes the outcome $y_t$, incurs loss $\ell(\hat{y}_t, y_t)$, and updates its strategy. Performance is measured by the \emph{regret} relative to the best fixed choice in hindsight,
+\begin{equation}\label{eq:regret_def}
+    \mathrm{Regret}_T \;=\; \sum_{t=1}^T \ell(\hat{y}_t, y_t) \;-\; \inf_{f \in \mathcal{D}} \sum_{t=1}^T \ell(f, y_t).
+\end{equation}
+An algorithm achieves \emph{sublinear regret} when $\mathrm{Regret}_T / T \to 0$ as $T \to \infty$, meaning that, averaged over time, it performs no worse than the single best fixed strategy selected with full hindsight. This is a notably strong guarantee: it holds even when returns are non-stationary, the model is misspecified, or the environment is adversarial. In MAOL, this framework governs each of the three adaptive layers, ensuring that no layer can cause systematic harm relative to a well-chosen fixed alternative.
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Setup and Notation}\label{sec:setup}
+% ──────────────────────────────────────────────────────────────
+
+Let $\{r_t\}_{t=1}^T$ denote a sequence of daily log returns and let $\{RV_t\}_{t=1}^T$ denote the corresponding realised variances, constructed from five-minute intraday returns. Realised variance is a higher-signal proxy for latent daily variability than squared returns \citep{andersen2003modeling,liu2015does}. Let $\calF_t$ denote the information set available at the close of day $t$. We use $y_t = RV_t$ as the volatility proxy throughout.
+
+A parametric volatility model specifies a family of one-step-ahead conditional variance forecasts
+\begin{equation}\label{eq:model}
+    h_t(\boldsymbol{\theta}) = h(RV_{t-1}, RV_{t-2}, \ldots;\, \boldsymbol{\theta}), \qquad \boldsymbol{\theta} \in \Theta \subseteq \mathbb{R}^p,
+\end{equation}
+where $\Theta$ is the parameter space and $p$ is the number of parameters. We use four base models.
+
+The RV-GARCH model, the realized-measure GARCH(1,1) of \citet{hansen2012realized}, sets
+\[
+    h_t(\boldsymbol{\theta}) = \omega + \alpha \, RV_{t-1} + \beta \, h_{t-1}(\boldsymbol{\theta}),
+    \qquad \boldsymbol{\theta} = (\omega, \alpha, \beta)^\top,
+\]
+where $\omega > 0$ governs the long-run variance level, $\alpha \geq 0$ captures the contemporaneous impact of new information, and $\beta \geq 0$ governs persistence. Stationarity requires $\alpha + \beta < 1$, which is enforced via a softmax reparametrisation of $(\alpha, \beta, 1-\alpha-\beta)$.
+
+The HAR-RV model, the heterogeneous autoregression of \citet{corsi2009simple}, sets
+\[
+    h_t(\boldsymbol{\theta}) = \beta_0 + \beta_d \, RV_{t-1} + \beta_w \, \overline{RV}_{t-1}^{(5)} + \beta_m \, \overline{RV}_{t-1}^{(22)},
+\]
+where $\overline{RV}_{t-1}^{(5)}$ and $\overline{RV}_{t-1}^{(22)}$ are the trailing 5-day and 22-day averages of $RV$. All four coefficients are constrained to be strictly positive via a softplus reparametrisation, which ensures $h_t > 0$ without any explicit projection step.
+
+Log-linear variants, Log-GARCH and Log-HAR, are obtained by applying the respective recursions in log space, so that $\log h_t$ follows the corresponding equation. This avoids negative forecasts by construction and produces greater robustness to outliers.
+
+We evaluate forecast accuracy using the QLIKE loss,
+\begin{equation}\label{eq:qlike}
+    \ell_t^{\mathrm{QL}}(\boldsymbol{\theta}) = \frac{RV_t}{h_t(\boldsymbol{\theta})} + \log h_t(\boldsymbol{\theta}).
+\end{equation}
+QLIKE is a strictly consistent scoring rule for conditional variance: the model that minimises its expectation is the one that correctly specifies $\mathbb{E}[RV_t \mid \calF_{t-1}]$ \citep{patton2011data}. It is also the negative of the Gaussian quasi-log-likelihood up to a constant, making it the natural loss for both estimation and evaluation. Importantly, the rankings it induces are robust to the choice of volatility proxy, so conclusions drawn from comparing QLIKE values carry over to the true conditional variance \citep{patton2011data}.
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Layer 1: Online Parameter Updating}\label{sec:layer1}
+% ──────────────────────────────────────────────────────────────
+
+The first layer updates the model parameters $\boldsymbol{\theta}_t$ sequentially at each observation, without any learning-rate tuning. After observing $RV_t$, we compute the gradient of the QLIKE loss with respect to $\boldsymbol{\theta}$. For the level-variance models (RV-GARCH, HAR-RV),
+\begin{equation}\label{eq:gradient}
+    \mathbf{g}_t = \nabla_{\boldsymbol{\theta}} \, \ell_t^{\mathrm{QL}}(\boldsymbol{\theta}_t) = \left( \frac{1}{h_t(\boldsymbol{\theta}_t)} - \frac{RV_t}{h_t(\boldsymbol{\theta}_t)^2} \right) \nabla_{\boldsymbol{\theta}} h_t(\boldsymbol{\theta}_t),
+\end{equation}
+where $\nabla_{\boldsymbol{\theta}} h_t(\boldsymbol{\theta}_t)$ is computed by recursive automatic differentiation for GARCH-type models and analytically for HAR-type models. For the log-variance models (Log-GARCH, Log-HAR), where $\log h_t(\boldsymbol{\theta}) = \mathbf{x}_t^\top \boldsymbol{\theta}$ and $h_t(\boldsymbol{\theta}) = \exp(\mathbf{x}_t^\top \boldsymbol{\theta})$, the chain rule gives the simpler form
+\begin{equation}\label{eq:gradient_log}
+    \mathbf{g}_t = \left(1 - \frac{RV_t}{h_t(\boldsymbol{\theta}_t)}\right) \mathbf{x}_t,
+\end{equation}
+where $\mathbf{x}_t$ collects the log-transformed features (e.g.\ $\log RV_{t-1}$, $\log \overline{RV}_{t-1}^{(5)}$, $\log \overline{RV}_{t-1}^{(22)}$ for Log-HAR). The log-variance parametrisation ensures $h_t > 0$ by construction and renders the QLIKE loss globally convex in $\boldsymbol{\theta}$, whereas the level-variance QLIKE is only locally convex near the optimum.
+
+A standard approach would apply online gradient descent with a step-size schedule $\eta_t$: $\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta_t \mathbf{g}_t$. However, the optimal step size depends on unknown properties of the gradient sequence, and in a financial time series where volatility regimes shift abruptly, no fixed schedule is uniformly good. We instead use the \emph{Continuous Coin Betting} (COCOB) algorithm of \citet{orabona2017training}, which is parameter-free: it determines its own effective step size from the observed gradient history, with no user-specified hyperparameters.
+
+COCOB is derived by reducing online linear optimisation to the problem of optimal coin betting. The algorithm maintains, for each parameter coordinate $j = 1, \ldots, p$, four scalar quantities: the cumulative absolute gradient $G_t^{(j)}$, the maximum observed absolute gradient $L_t^{(j)}$, the cumulative gradient $S_t^{(j)}$, and a reward variable $R_t^{(j)}$ that tracks accumulated predictive gains from the origin. The update rule is:
+
+\begin{algorithm}[H]
+\caption{COCOB Parameter Update (coordinate $j = 1, \ldots, p$)}
+\label{alg:cocob}
+\begin{algorithmic}[1]
+\State \textbf{Initialise:} $\theta_1^{(j)} = \theta_0^{(j)}$, \; $G_0^{(j)} = 0$, \; $L_0^{(j)} = \epsilon$, \; $R_0^{(j)} = 0$, \; $S_0^{(j)} = 0$
+\For{$t = 1, 2, \ldots$}
+    \State Compute gradient $g_t^{(j)} = [\mathbf{g}_t]_j$
+    \State $L_t^{(j)} \gets \max\!\bigl(L_{t-1}^{(j)},\, |g_t^{(j)}|\bigr)$ \hfill\textit{(track maximum gradient magnitude)}
+    \State $G_t^{(j)} \gets G_{t-1}^{(j)} + |g_t^{(j)}|$ \hfill\textit{(cumulative absolute gradient)}
+    \State $R_t^{(j)} \gets \max\!\bigl(R_{t-1}^{(j)} - g_t^{(j)}\bigl(\theta_t^{(j)} - \theta_0^{(j)}\bigr),\; 0\bigr)$ \hfill\textit{(reward)}
+    \State $S_t^{(j)} \gets S_{t-1}^{(j)} + g_t^{(j)}$ \hfill\textit{(cumulative gradient)}
+    \State $\displaystyle \theta_{t+1}^{(j)} \gets \theta_0^{(j)} - \frac{S_t^{(j)}}{L_t^{(j)}\bigl(G_t^{(j)} + L_t^{(j)}\bigr)} \,\bigl(R_t^{(j)} + L_t^{(j)}\bigr)$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+The step magnitude is governed by the ratio of accumulated reward to the normalisation $L_t^{(j)}(G_t^{(j)} + L_t^{(j)})$. When successive gradients point consistently in the same direction, $|S_t^{(j)}|$ grows and the algorithm takes progressively larger steps; when gradients alternate in sign, steps remain small and conservative. This self-regulation makes COCOB well-suited to a financial time series where the optimal speed of adaptation changes over time.
+
+The numerical stability parameter $\epsilon > 0$ (initialising $L_0^{(j)}$) prevents division by zero at $t = 1$ and is set to a small constant. The initial parameter vector $\boldsymbol{\theta}_0$ is obtained from a short OLS pre-fit on the first $T_0$ observations; the online updates begin from $t = T_0 + 1$.
+
+The formal guarantee of the COCOB algorithm is a regret bound of the form \citep{orabona2017training}
+\begin{equation}\label{eq:cocob_regret}
+    \sum_{t=1}^{T} \ell_t^{\mathrm{QL}}(\boldsymbol{\theta}_t) - \sum_{t=1}^{T} \ell_t^{\mathrm{QL}}(\boldsymbol{\theta}^*) \;\leq\; C \, \|\boldsymbol{\theta}^* - \boldsymbol{\theta}_0\| \, L_T^{\max} \, \sqrt{T},
+\end{equation}
+for any comparator $\boldsymbol{\theta}^* \in \Theta$, where $L_T^{\max} = \max_{1 \leq t \leq T} \|\mathbf{g}_t\|_\infty$ and $C > 0$ is a universal constant. Dividing by $T$, the average excess loss over the best fixed parameter vector vanishes at rate $O(T^{-1/2})$. This provides a formal ``do no harm'' property: the online updating procedure improves, or at worst does not deteriorate, average forecasting performance relative to any fixed benchmark.
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Layer 2: Multiplicative Bias Correction}\label{sec:layer2}
+% ──────────────────────────────────────────────────────────────
+
+Even with online parameter updating, the base model can remain persistently mis-scaled: it may capture the shape of volatility dynamics well while consistently predicting variance that is too high or too low in absolute terms. This happens, for instance, when the unconditional variance level shifts after a macroeconomic regime change, or when there is a structural mismatch between the model's functional form and the true conditional variance. Absorbing this level bias through the same COCOB instance that updates $(\alpha, \beta)$ would conflate two very different signals: the dynamic shape of the recursion and its overall scale. Layer 2 addresses this cleanly by introducing a dedicated multiplicative correction.
+
+Formally, we introduce a scalar correction factor $b_t > 0$ and define the bias-corrected variance forecast as
+\begin{equation}\label{eq:bias_corrected}
+    \tilde{h}_t = b_t \cdot h_t(\boldsymbol{\theta}_t).
+\end{equation}
+The multiplicative form is the natural choice for positive-valued variance forecasts: a level shift that doubles the unconditional variance corresponds to a constant factor $b_t = 2$, regardless of the scale of $h_t$. To guarantee $b_t > 0$ without any projection step, we reparametrise $b_t = \exp(\rho_t)$ with $\rho_t \in \mathbb{R}$, where $\rho_t$ is initialised at zero (so $b_1 = 1$, meaning no initial correction). The corrected QLIKE loss is
+\begin{equation}\label{eq:qlike_bias}
+    \ell_t^{\mathrm{QL}}(\rho_t) = \frac{RV_t}{\exp(\rho_t)\, h_t(\boldsymbol{\theta}_t)} + \log\!\bigl(\exp(\rho_t)\, h_t(\boldsymbol{\theta}_t)\bigr).
+\end{equation}
+The gradient with respect to $\rho_t$ follows by the chain rule,
+\begin{equation}\label{eq:grad_rho}
+    \frac{\partial \ell_t^{\mathrm{QL}}}{\partial \rho} \Bigg|_{\rho = \rho_t} = \frac{\partial \ell_t^{\mathrm{QL}}}{\partial b}\Bigg|_{b=b_t} \cdot b_t = \left(-\frac{RV_t}{b_t^2 h_t(\boldsymbol{\theta}_t)} + \frac{1}{b_t}\right) b_t = 1 - \frac{RV_t}{\tilde{h}_t},
+\end{equation}
+which is positive when the corrected forecast exceeds realised variance and negative otherwise. COCOB is applied to this scalar gradient to update $\rho_{t+1}$. In the implementation $\rho_t$ is clipped to $[-8, 8]$, corresponding to $b_t \in [e^{-8}, e^{8}] \approx [0.0003, 2981]$, a range wide enough to never bind in practice.
+
+The per-step zero-gradient condition $\partial \ell_t^{\mathrm{QL}} / \partial b = 0$ gives $b = RV_t / h_t(\boldsymbol{\theta}_t)$, i.e.\ the ratio of realised to predicted variance, which is a direct measure of the model's instantaneous multiplicative bias. The sequential COCOB update for $\rho_t$ tracks this ratio over time without look-ahead, averaging out noise in $RV_t$ while adapting to persistent bias. A value of $b_t = 1.05$, for example, indicates that the model currently underpredicts variance by approximately 5\%; the correction factor scales the variance forecast, and consequently all quantile forecasts, proportionally. Conversely, if the base model is unbiased, the gradient $1 - RV_t / \tilde{h}_t$ averages to zero and COCOB's cumulative signal remains near zero, so $b_t$ stays close to one. This ``do no harm'' property holds regardless of the volatility regime.
+
+The two-stage decomposition (Layer 1 then Layer 2) reflects the separation of concerns: Layer 1 tracks the shape of the variance recursion via $(\alpha, \beta)$, while Layer 2 tracks the level via $b_t$. Combining them into a single update would conflate these two signals. The order of layers matters because $h_t(\boldsymbol{\theta}_t)$ is used as the base in Layer 2; if Layer 2 were applied first, it would be correcting a forecast that has not yet incorporated the latest gradient information.
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Layer 3: Online Value-at-Risk Recalibration}\label{sec:layer3}
+% ──────────────────────────────────────────────────────────────
+
+Even a well-calibrated variance forecast does not guarantee correct tail-risk coverage: the tails of the standardised return distribution may be thicker or thinner than the assumed $F_\varepsilon$, causing VaR violations to cluster or be too sparse. Layer 3 corrects this without discarding the parametric distribution. We model returns as
+\[
+    r_t = \sqrt{\tilde{h}_t}\;\varepsilon_t, \qquad \varepsilon_t \sim F_\varepsilon,
+\]
+where $F_\varepsilon$ is a standardised (zero mean, unit variance) Student-$t$ distribution with fixed degrees of freedom $\nu = 4$. The nominal $\tau$-level VaR forecast implied by this distribution is $\VaR_{\tau,t}^{\mathrm{nom}} = \sqrt{\tilde{h}_t} \cdot F_\varepsilon^{-1}(\tau)$. This is correctly calibrated if and only if $F_\varepsilon$ is the true standardised return distribution.
+
+To recalibrate without replacing $F_\varepsilon$, we operate in probability integral transform (PIT) space. Define
+\begin{equation}\label{eq:pit}
+    u_t = F_\varepsilon\!\left(\frac{r_t}{\sqrt{\tilde{h}_t}}\right) \in [0,1].
+\end{equation}
+Under correct distributional specification, $u_t$ would be i.i.d.\ Uniform$(0,1)$; deviations from uniformity reveal misspecification. We introduce a threshold $q_t \in [0,1]$ and replace the nominal quantile level $\tau$ with the sequentially updated $q_t$, giving the recalibrated VaR:
+\begin{equation}\label{eq:var_recal}
+    \VaR_{\tau,t}^{\mathrm{recal}} = \sqrt{\tilde{h}_t}\cdot F_\varepsilon^{-1}(q_t).
+\end{equation}
+The threshold $q_t$ is updated via online gradient descent on the \emph{pinball loss} $\ell_\tau(q_t, u_t) = (u_t - q_t)(\tau - \mathds{1}\{u_t < q_t\})$, which has subgradient $-(\tau - \mathds{1}\{u_t \leq q_t\})$ with respect to $q_t$. The step size is again determined by COCOB, initialised at $q_1 = \tau$.
+
+Because $q_t$ must remain in $[0,1]$ for the recalibrated VaR to be well-defined, we apply a projection $\tilde{q}_t = \Pi_{[0,1]}(q_t) = \max(0, \min(1, q_t))$ before computing the hit indicator and the VaR forecast. The update is then performed from the projected point:
+\begin{equation}\label{eq:qt_update}
+    q_{t+1} = \tilde{q}_t + \eta_t\bigl(\tau - \mathds{1}\{u_t \leq \tilde{q}_t\}\bigr),
+\end{equation}
+where $\eta_t > 0$ is the COCOB-determined step size. An update from $\tilde{q}_t \in [0,1]$ always maps back into $[0,1]$: in the hit case, $q_{t+1} = \tilde{q}_t - \eta_t(1-\tau) \geq 0$; in the no-hit case, $q_{t+1} = \tilde{q}_t + \eta_t\tau \leq 1$. The projection is therefore inactive after initialisation, since COCOB produces step sizes small enough that $q_t$ stays in $[0,1]$ throughout. We prove this formally in Section~\ref{sec:theory} (Lemma~\ref{lem:bounded}).
+
+The interpretation of the update is direct. If a VaR exceedance occurs ($u_t \leq \tilde{q}_t$), the threshold is pushed down, making future exceedances less likely. If no exceedance occurs, the threshold is pushed up. Over time, this drives the empirical exceedance rate toward the target level $\tau$, regardless of the distributional form of $F_\varepsilon$ or the stationarity properties of $\{r_t\}$.
+
+% ──────────────────────────────────────────────────────────────
+\subsection{The Complete MAOL Algorithm}\label{sec:complete}
+% ──────────────────────────────────────────────────────────────
+
+Algorithm~\ref{alg:maol} collects the full procedure. The three COCOB instances are initialised independently and share no parameters, so each layer can be added or removed without affecting the others.
+
+\begin{algorithm}[H]
+\caption{Model-Assisted Online Learning (MAOL) Wrapper}
+\label{alg:maol}
+\begin{algorithmic}[1]
+\State \textbf{Input:} Base model $h_t(\boldsymbol{\theta})$; standardised CDF $F_\varepsilon$; risk level $\tau$; initial $\boldsymbol{\theta}_0$, $\rho_0 = 0$, $q_1 = \tau$
+\For{$t = 1, 2, \ldots, T$}
+    \State \textbf{(Forecast)} $h_t \gets h_t(\boldsymbol{\theta}_t)$; \quad $b_t \gets \exp(\rho_t)$; \quad $\tilde{h}_t \gets b_t \cdot h_t$
+    \State \textbf{(VaR)} $\tilde{q}_t \gets \Pi_{[0,1]}(q_t)$; \quad $\VaR_{\tau,t} \gets \sqrt{\tilde{h}_t} \cdot F_\varepsilon^{-1}(\tilde{q}_t)$
+    \State \textbf{(Observe)} Observe $r_t$ and $RV_t$
+    \State \textbf{(Layer 1)} Compute $\mathbf{g}_t$ via \eqref{eq:gradient}; update $\boldsymbol{\theta}_{t+1}$ via COCOB
+    \State \textbf{(Layer 2)} Compute gradient $1 - RV_t/\tilde{h}_t$; update $\rho_{t+1}$ via COCOB
+    \State \textbf{(Layer 3)} $u_t \gets F_\varepsilon(r_t / \sqrt{\tilde{h}_t})$; update $q_{t+1}$ via \eqref{eq:qt_update}
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+Four properties of the algorithm are worth highlighting. The wrapper is model-agnostic: any differentiable (or sub-differentiable) base model can be plugged in without modification, and we deliberately apply it to four structurally different specifications to confirm that the gains are not artefacts of a particular choice. No hyperparameter tuning is required: COCOB sets its own step size from the observed gradient history, and the only design input is the initialisation $\boldsymbol{\theta}_0$, obtained from a short OLS pre-fit on the first $T_0$ observations. The layers are structurally independent, meaning Layer 3 operates on whatever variance forecast Layers 1 and 2 produce without feeding back into them, so variance accuracy and tail-risk calibration can be assessed and attributed separately. Finally, all performance guarantees are finite-time: the regret bounds for Layers 1 and 2 hold for every horizon $T$ and every comparator $\boldsymbol{\theta}^* \in \Theta$, and the calibration bound of Theorem~\ref{thm:calibration} holds for every deterministic PIT sequence and every finite $T$.

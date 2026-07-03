@@ -1,0 +1,95 @@
+\documentclass[11pt,a4paper]{article}
+
+% Preamble
+\input{preamble}
+
+\begin{document}
+
+% ── TITLE PAGE ───────────────────────────────────────────────
+\pagenumbering{roman}
+\begin{titlepage}
+\newgeometry{margin=2.5cm}
+\begin{center}
+
+\textsc{Erasmus School of Economics}\\[0.2em]
+\textsc{Robeco Institutional Asset Management}\\[0.1em]
+{\small Financial Case Studies 2025-2026}
+
+\vfill
+
+{\hrule height .08em}
+\bigskip
+{\huge\bfseries Model-Assisted Online Learning\\[0.5em] for Volatility Forecasting}
+\bigskip
+{\hrule height .08em}
+
+\vspace{1.4cm}
+
+Mindaugas Butkus \quad Antonis Konstantinidis\\[0.4em]
+Marina Ostoji\'{c} \quad Sanjay Vonk
+
+\vfill
+
+\includegraphics[width=0.45\textwidth]{eur}
+
+\vfill
+
+\begin{tabular}{ll}
+\toprule
+Supervisor:        & Dr.\ Annika Camehl \\
+Date:              & March 2026 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\vspace{1.2cm}
+
+\noindent\small\textit{Acknowledgments:} We thank Dr.\ Annika Camehl for supervision and guidance, and Robeco for the topic provision and data access. All errors remain our own.
+
+
+\restoregeometry
+\end{titlepage}
+
+% ── ABSTRACT ─────────────────────────────────────────────────
+\begin{abstract}
+\input{sections/0_abstract/abstract}
+\end{abstract}
+
+% ── TABLE OF CONTENTS ─────────────────────────────────────────
+\newpage
+\tableofcontents
+
+\newpage
+\pagenumbering{arabic}
+% ── SECTION 1: INTRODUCTION AND RELATED LITERATURE ───────────
+\input{sections/1_introduction/introduction}
+
+% ── SECTION 2: METHODOLOGY ───────────────────────────────────
+\input{sections/2_methodology/methodology}
+
+% ── SECTION 3: THEORETICAL GUARANTEES ────────────────────────
+
+\input{sections/3_theoretical_guarantees/theoretical_properties}
+
+% ── SECTION 4: EMPIRICAL STRATEGY ────────────────────────────
+
+\input{sections/4_empirical_application/empirical_application}
+
+% ── SECTION 5: EMPIRICAL RESULTS ─────────────────────────────
+
+\input{sections/5_results/results}
+
+% ── SECTION 6: CONCLUSION ────────────────────────────────────
+
+\input{sections/6_conclusion/conclusion}
+
+% ── REFERENCES ───────────────────────────────────────────────
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+% ── APPENDIX ─────────────────────────────────────────────────
+
+\appendix
+\input{sections/7_appendix/appendix}
+
+\end{document}

@@ -1,0 +1,18 @@
+\begin{table}[H]
+\centering
+\caption{Cross-Country Tail-Risk and Forecast Comparison. VaR rate is the empirical exceedance rate at the 5\% level. DM statistics test equal predictive accuracy of MAOL-GARCH versus each benchmark (QLIKE loss); negative values indicate MAOL-GARCH is more accurate.}
+\label{tab:cc_var}
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccc}
+\toprule
+Market & VaR rate & DM vs HAR oracle & $p$ & DM vs EWMA & $p$ & DM vs HAR Roll. & $p$ \\
+\midrule
+US Treasury & 0.048 & $+4.055$ & 0.0001 & $-34.530$ & 0.0000 & $-1.248$ & 0.2119 \\
+German Bund & 0.050 & $+9.987$ & 0.0000 & $-10.972$ & 0.0000 & $+2.608$ & 0.0091 \\
+UK Gilt & 0.050 & $+2.820$ & 0.0048 & $-18.909$ & 0.0000 & $+1.157$ & 0.2475 \\
+Japanese JGB & 0.050 & $+2.440$ & 0.0147 & $-14.989$ & 0.0000 & $-4.059$ & 0.0000 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

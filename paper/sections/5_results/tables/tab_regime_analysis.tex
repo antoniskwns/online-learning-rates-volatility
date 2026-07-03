@@ -1,0 +1,15 @@
+\begin{table}[H]
+\centering
+\caption{Regime Analysis (US Treasury, TY). Per-period mean of the multiplicative bias correction $b_t$, its maximum, and the mean per-step QLIKE improvement of MAOL-GARCH over HAR Rolling. A positive QLIKE difference indicates MAOL wins on that day. GFC: March 2008 to June 2009. COVID: February 2020 to June 2020.}
+\label{tab:regime_analysis}
+\small
+\begin{tabular}{lccccc}
+\toprule
+Regime & Obs & Mean $b_t$ & Max $b_t$ & Mean QLIKE diff. & \% days MAOL wins \\
+\midrule
+GFC (2008-09) & 388 & 1.0089 & 1.0279 & $-0.02003$ & 44.6\% \\
+COVID (2020) & 103 & 0.9853 & 0.9869 & $+0.57408$ & 50.5\% \\
+Tranquil & 10,966 & 1.0121 & 1.1339 & $+0.00385$ & 49.1\% \\
+\bottomrule
+\end{tabular}
+\end{table}

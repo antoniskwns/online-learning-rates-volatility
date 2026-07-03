@@ -1,0 +1,72 @@
+% ── APPENDIX: EVALUATION METRICS ─────────────────────────────
+
+
+\subsection{Variance Forecast Accuracy}
+
+The prequential $R^2$ on the volatility (square-root) scale measures the relative improvement
+of a model's forecasts over the random walk baseline $\hat{h}^{RW}_t = \mathrm{RV}_{t-1}$:
+\[
+    R^2_{\mathrm{vol}} = 1 - \frac{\sum_{t=1}^T L(\hat{h}^{\mathrm{Model}}_t)}{\sum_{t=1}^T L(\hat{h}^{RW}_t)},
+\]
+where $L(\cdot)$ is the QLIKE loss. Values above zero indicate improvement over the naive
+baseline.
+
+\subsection{Unbiasedness and Serial Correlation Tests}
+
+The Mincer-Zarnowitz regression tests forecast unbiasedness by estimating
+\[
+    \mathrm{RV}_t = a + b\,\hat{h}_t + \varepsilon_t,
+\]
+with the joint null $H_0: a=0,\,b=1$ tested via a Wald statistic with HAC standard errors.
+Rejection indicates systematic forecast bias.
+
+The Ljung-Box statistic detects serial correlation in standardized squared residuals
+$\hat{e}_t^2 = (\mathrm{RV}_t / \hat{h}_t - 1)^2$:
+\[
+    Q(k) = T(T+2)\sum_{j=1}^k \frac{\hat{\rho}_j^2}{T-j},
+\]
+where $\hat{\rho}_j$ is the sample autocorrelation at lag $j$. Under the null, $Q(k) \sim \chi^2(k)$.
+
+\subsection{Probability Integral Transform Tests}
+
+Under correct specification, PIT values $u_t = F_t(r_t)$ should be i.i.d.\ Uniform$(0,1)$
+\citep{diebold1998evaluating}. Three complementary statistics are used. The
+Kolmogorov-Smirnov statistic is $D_T = \sup_{x \in [0,1]} |F_{\mathrm{emp}}(x) - x|$. The
+Cram\'{e}r-von Mises statistic is $W^2_T = \int_0^1 (F_{\mathrm{emp}}(x) - x)^2\,dx$. The
+chi-square goodness-of-fit statistic bins PIT values into $K$ equal intervals and computes
+$\chi^2 = \sum_{i=1}^K (O_i - E_i)^2 / E_i$ where $E_i = T/K$.
+
+\subsection{Tail-Risk Backtesting}
+
+Define the VaR exceedance indicator $I_t = \mathbf{1}\{r_t < -\widehat{\mathrm{VaR}}_{\alpha,t}\}$
+with empirical rate $\hat{\pi} = T^{-1}\sum_t I_t$.
+
+The \textbf{Kupiec test} \citep{Kupiec1995} evaluates unconditional coverage:
+\[
+    LR_{UC} = -2\ln\!\left(\frac{\alpha^N(1-\alpha)^{T-N}}{\hat{\pi}^N(1-\hat{\pi})^{T-N}}\right)
+    \sim \chi^2(1),
+\]
+where $N = \sum_t I_t$.
+
+The \textbf{Christoffersen test} \citep{Christoffersen1998} jointly tests coverage and
+independence: $LR_{CC} = LR_{UC} + LR_{IND} \sim \chi^2(2)$, where $LR_{IND}$ tests
+first-order Markov dependence in $\{I_t\}$.
+
+The \textbf{dynamic quantile (DQ) test} \citep{engle2004caviar} regresses $I_t - \alpha$
+on lagged exceedances and the current VaR, testing whether exceedances are predictable.
+
+The \textbf{Expected Shortfall backtest} of \citet{acerbi2014backtesting} evaluates:
+\[
+    Z_{ES} = \frac{1}{N}\sum_{t=1}^T \frac{r_t \cdot \mathbf{1}\{r_t < -\widehat{\mathrm{VaR}}_{\alpha,t}\}}{\widehat{\mathrm{ES}}_{\alpha,t}} + 1.
+\]
+Under correct ES specification, $\mathbb{E}[Z_{ES}] = 0$; significance is assessed via bootstrap.
+
+\subsection{Diebold-Mariano Test}
+
+The Diebold-Mariano test \citep{DieboldMariano1995} evaluates equal predictive accuracy. Define
+$d_t = L(\hat{h}^{(1)}_t) - L(\hat{h}^{(2)}_t)$. The test statistic is
+\[
+    DM = \frac{\bar{d}}{\sqrt{\hat{\sigma}^2_d / T}},
+\]
+where $\hat{\sigma}^2_d$ is the Newey-West HAC variance of $d_t$. Under $H_0: \mathbb{E}[d_t] = 0$,
+$DM \to \mathcal{N}(0,1)$. A negative statistic indicates model 1 has lower loss.

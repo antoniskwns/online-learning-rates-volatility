@@ -1,0 +1,31 @@
+\begin{table}[H]
+\centering
+\caption{Diebold-Mariano Tests: MAOL-GARCH vs competitors (QLIKE loss). Negative stat = MAOL-GARCH is better.}
+\label{tab:dm_tests}
+\small
+\begin{tabular}{llcc}
+\toprule
+Market & Comparison & DM stat & $p$ \\
+\midrule
+\multirow{4}{*}{US Treasury} & vs HAR oracle & $+4.055$ & $0.0001$ \\
+ & vs EWMA & $-34.530$ & $0.0000$ \\
+ & vs HAR Rolling & $-1.248$ & $0.2119$ \\
+ & vs HAR Expanding & $+0.735$ & $0.4623$ \\
+\addlinespace
+\multirow{4}{*}{German Bund} & vs HAR oracle & $+9.987$ & $0.0000$ \\
+ & vs EWMA & $-10.972$ & $0.0000$ \\
+ & vs HAR Rolling & $+2.608$ & $0.0091$ \\
+ & vs HAR Expanding & $+7.281$ & $0.0000$ \\
+\addlinespace
+\multirow{4}{*}{UK Gilt} & vs HAR oracle & $+2.820$ & $0.0048$ \\
+ & vs EWMA & $-18.909$ & $0.0000$ \\
+ & vs HAR Rolling & $+1.157$ & $0.2475$ \\
+ & vs HAR Expanding & $+2.628$ & $0.0086$ \\
+\addlinespace
+\multirow{4}{*}{Japanese JGB} & vs HAR oracle & $+2.440$ & $0.0147$ \\
+ & vs EWMA & $-14.989$ & $0.0000$ \\
+ & vs HAR Rolling & $-4.059$ & $0.0000$ \\
+ & vs HAR Expanding & $+1.395$ & $0.1629$ \\
+\bottomrule
+\end{tabular}
+\end{table}

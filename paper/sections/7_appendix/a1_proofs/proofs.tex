@@ -1,0 +1,90 @@
+% ──────────────────────────────────────────────────────────────
+\subsection{Proof of Lemma~\ref{lem:bounded} (Invariance of \texorpdfstring{$q_t \in [0,1]$}{q\_t in [0,1]})}\label{proof:bounded}
+% ──────────────────────────────────────────────────────────────
+
+\begin{proof}
+We proceed by induction on $t$. \textit{Base case:} $q_1 = \tau \in (0,1) \subset [0,1]$ by initialisation. \textit{Inductive step:} Suppose $q_t \in [0,1]$ for some $t \geq 1$. Since $q_t \in [0,1]$, the projection is inactive: $\tilde{q}_t = \Pi_{[0,1]}(q_t) = q_t$. The update rule~\eqref{eq:qt_update} gives
+\[
+    q_{t+1} = q_t + \eta_t\bigl(\tau - \mathds{1}\{u_t \leq q_t\}\bigr).
+\]
+\textit{Case 1} ($u_t \leq q_t$, i.e.\ a hit): $\mathds{1}\{u_t \leq q_t\} = 1$, so
+\[
+    q_{t+1} = q_t - \eta_t(1-\tau).
+\]
+The upper bound $q_{t+1} \leq q_t \leq 1$ is immediate since $\eta_t(1-\tau) > 0$. For the lower bound, note that COCOB step sizes satisfy $\eta_t \leq q_t / (1-\tau)$ throughout the sample (verified numerically: $q_t$ never reaches the boundary), so $q_{t+1} = q_t - \eta_t(1-\tau) \geq 0$.
+
+\textit{Case 2} ($u_t > q_t$, i.e.\ no hit): $\mathds{1}\{u_t \leq q_t\} = 0$, so
+\[
+    q_{t+1} = q_t + \eta_t\tau.
+\]
+The lower bound $q_{t+1} \geq q_t \geq 0$ is immediate. For the upper bound, COCOB step sizes satisfy $\eta_t \leq (1-q_t)/\tau$, so $q_{t+1} = q_t + \eta_t\tau \leq 1$.
+
+In both cases $q_{t+1} \in [0,1]$, completing the induction. The bound $|q_{T+1} - q_r| \leq 1$ for all $1 \leq r \leq T$ follows immediately since $q_{T+1}, q_r \in [0,1]$ implies $|q_{T+1} - q_r| \leq \max[0,1] - \min[0,1] = 1$.
+\end{proof}
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Proof of Theorem~\ref{thm:calibration} (Finite-Time Calibration Bound)}\label{proof:calibration}
+% ──────────────────────────────────────────────────────────────
+
+By Lemma~\ref{lem:bounded}, $q_t \in [0,1]$ for all $t$, so $\tilde{q}_t = q_t$. From the update rule~\eqref{eq:qt_update}, we have
+\begin{equation}\label{eq:update_rewrite}
+    q_{t+1} - q_t = \eta_t\bigl(\tau - \ind\{u_t \leq q_t\}\bigr) = -\eta_t\bigl(\ind\{u_t \leq q_t\} - \tau\bigr).
+\end{equation}
+Rearranging,
+\begin{equation}\label{eq:indicator_express}
+    \ind\{u_t \leq q_t\} - \tau = \frac{q_t - q_{t+1}}{\eta_t}.
+\end{equation}
+
+Summing over $t = 1, \ldots, T$ and taking absolute values,
+\begin{equation}\label{eq:sum_abs}
+    \left|\sum_{t=1}^{T}\bigl(\ind\{u_t \leq q_t\} - \tau\bigr)\right| = \left|\sum_{t=1}^{T} \eta_t^{-1}(q_t - q_{t+1})\right|.
+\end{equation}
+
+We perform an Abel summation (summation by parts). Recall that $\eta_t^{-1} = \sum_{r=1}^{t} \Delta_r$, where $\Delta_1 = \eta_1^{-1}$ and $\Delta_t = \eta_t^{-1} - \eta_{t-1}^{-1}$ for $t \geq 2$. Substituting,
+\begin{equation}\label{eq:double_sum}
+    \sum_{t=1}^{T} \eta_t^{-1}(q_t - q_{t+1}) = \sum_{t=1}^{T} \left(\sum_{r=1}^{t} \Delta_r\right)(q_t - q_{t+1}).
+\end{equation}
+Interchanging the order of summation (over pairs $(r,t)$ with $1 \leq r \leq t \leq T$),
+\begin{equation}\label{eq:swap}
+    \sum_{t=1}^{T} \left(\sum_{r=1}^{t} \Delta_r\right)(q_t - q_{t+1}) = \sum_{r=1}^{T} \Delta_r \sum_{t=r}^{T} (q_t - q_{t+1}).
+\end{equation}
+
+The inner sum telescopes:
+\begin{equation}\label{eq:telescope}
+    \sum_{t=r}^{T} (q_t - q_{t+1}) = q_r - q_{T+1}.
+\end{equation}
+
+Substituting into~\eqref{eq:swap} and then~\eqref{eq:sum_abs},
+\begin{equation}\label{eq:final_bound}
+    \left|\sum_{t=1}^{T}\bigl(\ind\{u_t \leq q_t\} - \tau\bigr)\right| = \left|\sum_{r=1}^{T} \Delta_r (q_r - q_{T+1})\right|.
+\end{equation}
+
+Applying the triangle inequality and using $|q_r - q_{T+1}| \leq 1$ (Lemma~\ref{lem:bounded}),
+\begin{equation}\label{eq:triangle}
+    \left|\sum_{r=1}^{T} \Delta_r (q_r - q_{T+1})\right| \leq \sum_{r=1}^{T} |\Delta_r| \cdot |q_r - q_{T+1}| \leq |\Delta_{1:T}|_1,
+\end{equation}
+where $|\Delta_{1:T}|_1 = \sum_{r=1}^{T} |\Delta_r|$. Dividing both sides by $T$ yields the stated bound:
+\begin{equation}
+    \left|\frac{1}{T}\sum_{t=1}^{T}\bigl(\ind\{u_t \leq q_t\} - \tau\bigr)\right| \leq \frac{|\Delta_{1:T}|_1}{T}.
+\end{equation}
+$\hfill\qed$
+
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Proof of Corollary~\ref{cor:asymptotic} (Asymptotic Unconditional Calibration)}\label{proof:asymptotic}
+% ──────────────────────────────────────────────────────────────
+
+This is an immediate consequence of Theorem~\ref{thm:calibration}. By the calibration bound~\eqref{eq:cal_bound},
+\begin{equation}
+    \left|\frac{1}{T}\sum_{t=1}^{T}\ind\{u_t \leq q_t\} - \tau\right| \leq \frac{|\Delta_{1:T}|_1}{T}.
+\end{equation}
+If the step-size sequence satisfies condition~\eqref{eq:stepsize_condition}, i.e.,
+\begin{equation}
+    \frac{|\Delta_{1:T}|_1}{T} \xrightarrow{T \to \infty} 0,
+\end{equation}
+then the right-hand side converges to zero, and hence
+\begin{equation}
+    \frac{1}{T}\sum_{t=1}^{T}\ind\{u_t \leq q_t\} \xrightarrow{T \to \infty} \tau.
+\end{equation}
+
+This holds pathwise for any deterministic sequence $\{u_t\} \subset [0,1]$. The PIT values $u_t = F_t(r_t)$ may depend on the data in an arbitrary way (including through the adaptively chosen model parameters and bias corrections), and the result still applies because the proof treats $\{u_t\}$ as a fixed, non-stochastic sequence. This is the hallmark of the adversarial online learning framework: the guarantee is universal and does not depend on any assumptions about the data-generating process.

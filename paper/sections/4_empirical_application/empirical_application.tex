@@ -1,0 +1,63 @@
+% ══════════════════════════════════════════════════════════════
+\section{Empirical Strategy}\label{sec:empirical}
+% ══════════════════════════════════════════════════════════════
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Data}\label{sec:data}
+% ──────────────────────────────────────────────────────────────
+
+The primary dataset consists of 10-year US Treasury note futures (symbol: TY) over the period January 1983 to December 2024, yielding 11,731 daily observations after removing non-trading days. The 10-year Treasury is the global benchmark for fixed-income risk and serves as the reference instrument for pricing, duration hedging, and monetary policy transmission across markets. Its deep liquidity, uninterrupted trading history spanning more than four decades, and extensive coverage in the academic literature make it the natural primary testing ground for a sequential forecasting framework.
+
+Realised variance is constructed as the sum of squared 5-minute log returns over each trading day,
+\begin{equation}\label{eq:rv_def}
+    RV_t = \sum_{j=1}^{M_t} \left(\log \frac{P_{t,j}}{P_{t,j-1}}\right)^2,
+\end{equation}
+where $P_{t,j}$ denotes the $j$-th intraday price on day $t$ and $M_t$ is the number of 5-minute intervals. The 5-minute sampling frequency follows \citet{liu2015does}, who show that it balances the efficiency gains from higher-frequency sampling against contamination from bid-ask bounce and other microstructure noise. Daily returns are close-to-close log differences.
+
+The four-decade sample spans an unusually diverse range of interest rate environments and stress episodes, including the Volcker disinflation, the 1987 equity crash, the 1994 bond market rout, the 1998 LTCM crisis, the 2008 global financial crisis, the 2013 taper tantrum, the 2020 COVID-19 pandemic, and the 2022--23 Federal Reserve hiking cycle. This breadth of regimes is not incidental: it constitutes the primary test for any adaptive framework, since fixed-parameter models are precisely designed to fail when the data-generating process shifts. A sequential estimator that performs well across all these episodes, without knowing in advance where they fall, provides much stronger evidence of genuine adaptivity than one evaluated on a homogeneous sample.
+
+To assess generalisability beyond US Treasuries, we apply the same framework to three additional 10-year government bond futures markets: German Bund (BN, 7,065 observations, 1997--2024), UK Gilt (GL, 6,640 observations, 1998--2024), and Japanese JGB (JB, 5,762 observations, 2003--2024). These markets differ substantially in their monetary policy regimes, liquidity conditions, and volatility dynamics. The JGB in particular, subject to the Bank of Japan's yield curve control policy since 2016, presents a structurally distinct volatility environment that no US-calibrated model would anticipate. All parameter choices and estimation procedures are held fixed across markets; no market-specific tuning is permitted at any stage.
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Estimation Protocol}\label{sec:protocol}
+% ──────────────────────────────────────────────────────────────
+
+The MAOL framework operates under strict sequential constraints. At each time $t$, the forecast $\tilde{h}_t$ is formed using only information available at the close of day $t-1$; no re-estimation, look-ahead, or access to future observations is permitted at any point. The framework is initialised with a short OLS pre-fit on the first $T_0 = 252$ observations (one calendar year), which provides the starting parameter vector $\boldsymbol{\theta}_0$. This burn-in serves a single purpose: to give the COCOB gradient accumulator a reasonable initial point from which to begin updating. All three COCOB instances then begin updating from $t = T_0 + 1$ onward, and every forecast from that observation to $T$ is a genuine out-of-sample prediction. The initial bias parameter is $\rho_0 = 0$ (equivalently $b_1 = 1$, no initial correction) and the VaR threshold is initialised at $q_1 = \tau$. No hyperparameter search is conducted at any stage; the framework is deterministic given its starting point. The cross-country evaluations follow the same initialisation protocol independently for each market, ensuring comparability across different sample lengths and start dates.
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Benchmark Models}\label{sec:benchmarks}
+% ──────────────────────────────────────────────────────────────
+
+We compare MAOL against five benchmarks that span a range of adaptivity and information access, chosen to isolate what each component of the framework contributes.
+
+The HAR-RV model of \citet{corsi2009simple} is included in two sequential variants that serve as the direct competitors to Layer~1 of MAOL. The rolling-window variant (HAR-Rolling) re-estimates via OLS at each step $t$ using a fixed 252-day window of past observations; it adapts to parameter drift by discarding old data, but does so non-adaptively through a hard cutoff rather than a gradient-based signal. The expanding-window variant (HAR-Expanding) re-estimates on all observations up to $t-1$; it is consistent under stationarity but adapts slowly to regime changes because early observations receive the same weight as recent ones. Comparing MAOL against both variants isolates the value of gradient-based updating relative to the two most common forms of sequential re-estimation used in practice.
+
+The EWMA model \citep{JPMorganRiskMetrics1996}, defined by $\hat{h}_t = (1-\lambda)\,r_{t-1}^2 + \lambda\,\hat{h}_{t-1}$ with the industry-standard decay factor $\lambda = 0.94$, is fully sequential and requires no estimation. It represents the dominant industry baseline for volatility measurement and serves as the lowest bar a structured model should clear.
+
+The two remaining benchmarks function as performance ceilings rather than practical competitors. The full-sample HAR oracle is the HAR-RV model estimated by OLS on the entire sample; it uses future observations relative to every forecast date and represents a hindsight-optimal linear benchmark. MAOL's cumulative regret relative to this oracle quantifies the total cost of operating sequentially without advance knowledge of the full-sample parameters, the quantity that the theoretical guarantee of Section~\ref{sec:layer1} bounds. The full-sample GARCH oracle is a GARCH(1,1) model estimated by quasi-maximum likelihood on all daily returns, providing an analogous ceiling for return-based variance models and serving as a reference for assessing the value of intraday realized measures.
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Evaluation Metrics}\label{sec:metrics}
+% ──────────────────────────────────────────────────────────────
+
+We evaluate the framework across three dimensions: variance forecast accuracy, distributional calibration, and tail-risk performance.
+
+Variance forecast accuracy is measured primarily by the mean QLIKE loss. As established in Section~\ref{sec:setup}, QLIKE is a strictly consistent scoring rule for conditional variance, so lower values reflect  improvements in forecasting the true conditional variance rather than artefacts of the proxy choice \citep{patton2011data}. The prequential $R^2$ on the volatility (square-root) scale, computed relative to the random walk baseline $\hat{h}_t^{RW} = RV_{t-1}$, provides a complementary measure of explained variation. Statistical significance of pairwise QLIKE differences is assessed using the Diebold-Mariano test \citep{DieboldMariano1995} with Newey-West HAC standard errors. Mincer-Zarnowitz regressions of $RV_t$ on $\hat{h}_t$ test the joint null $H_0\colon a=0,\,b=1$ using HAC standard errors; rejection indicates systematic bias in the forecast level or slope. We also report the Ljung-Box $Q$-statistic on squared standardized residuals at weekly, monthly, and quarterly lags as a check on remaining variance autocorrelation. The cumulative regret against the full-sample HAR oracle,
+\begin{equation}\label{eq:cumregret}
+    \mathrm{Regret}_t = \sum_{s=T_0+1}^{t} \left[ \ell_s^{\mathrm{QL}}(\tilde{h}_s) - \ell_s^{\mathrm{QL}}(\hat{h}_s^{\mathrm{HAR}}) \right], \qquad t = T_0+1, \ldots, T,
+\end{equation}
+should remain bounded as $t \to T$ under the theoretical guarantee of Section~\ref{sec:layer1}. The time-averaged regret $\mathrm{Regret}_T / (T - T_0)$ provides a scale-free summary that is directly comparable across markets with different sample lengths.
+
+Distributional calibration is evaluated through the PIT values $u_t = F_\varepsilon(r_t/\sqrt{\tilde{h}_t})$, which should be i.i.d.\ Uniform$(0,1)$ under correct specification \citep{diebold1998evaluating}. We test uniformity using the Kolmogorov-Smirnov, Cram\'{e}r-von Mises, and chi-square goodness-of-fit statistics, applied both before and after Layer~3 to isolate the contribution of the online VaR recalibration.
+
+Tail-risk performance is assessed by backtesting Value-at-Risk at the 5\% level ($\tau = 0.05$). The \citet{Kupiec1995} likelihood-ratio test evaluates unconditional coverage; the \citet{Christoffersen1998} test additionally checks for first-order clustering of violations; the dynamic quantile test of \citet{engle2004caviar} tests whether exceedances are predictable from the full information set $\calF_{t-1}$; and the Acerbi-Sz\'{e}kely backtest \citep{acerbi2014backtesting} evaluates expected shortfall at the same level. All test formulas are given in Appendix~\ref{app:metrics}.
+
+% ──────────────────────────────────────────────────────────────
+\subsection{Additional Robustness Analyses}\label{sec:robustness_design}
+% ──────────────────────────────────────────────────────────────
+
+Beyond the main evaluation, we conduct two analyses designed to probe the framework under conditions that are most demanding for adaptive methods: varying available history and changing volatility regimes.
+
+For the sample-length study, we re-run MAOL-GARCH independently on every non-over\-lapping window of length $w \in \{2, 5, 10, 15\}$ years drawn from the full 1983--2024 US Treasury history. Each window is initialised from the same conditions and receives no information from adjacent windows, so the exercise exactly replicates what a practitioner would face when deploying the model on a market with a limited track record. Running across four distinct window lengths allows us to trace how performance scales with available history and, crucially, whether the framework's 252-observation initialisation period represents a genuinely meaningful warm-up requirement or merely a conservative default. For each window length we report mean QLIKE, prequential $R^2$, average regret against the within-window HAR oracle, and VaR exceedance rate across all windows of that length, and we present the results in a multi-panel figure that makes the cross-length comparison visual.
+
+For the regime analysis, we partition the US Treasury sample into three periods: the Global Financial Crisis (March 2008 to June 2009, 388 observations), the COVID-19 disruption (February 2020 to June 2020, 103 observations), and all remaining tranquil observations (10,966 observations). The two crisis windows are defined by their widely recognised start and end dates; no regime-switching model or latent state is estimated, so the partitioning is fully ex post and involves no look-ahead. For each period we report the mean and maximum of the multiplier $b_t$, the mean per-step QLIKE differential between MAOL-GARCH and HAR-Rolling (positive values indicate MAOL wins), and the fraction of days on which MAOL achieves lower QLIKE. This decomposition is designed to test a specific claim: that the online multiplier provides the greatest value at the onset of volatility surges, when the gap between prevailing conditions and historical parameters is widest, and that it remains inactive during periods when the base model is already well-calibrated.

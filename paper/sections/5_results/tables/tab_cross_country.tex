@@ -1,0 +1,18 @@
+\begin{table}[H]
+\centering
+\caption{Cross-Country Comparison. All MAOL models are strictly sequential. Regret/$T$ vs HAR oracle. $R^2$ on vol scale vs RW.}
+\label{tab:cross_country}
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcrcccccccccr}
+\toprule
+Market & Obs & Sample & MAOL-GARCH & MAOL-HAR & Skew-t & HAR Roll. & HAR Exp. & EWMA & HAR oracle & $R^2$ & VaR & Regret/$T$ \\
+\midrule
+US Treasury & 11,731 & 1983--2024 & $-9.9866$ & $-9.9859$ & $-9.9866$ & $-9.9852$ & $-9.9940$ & $-9.7423$ & $-9.9908$ & 0.370 & 0.048 & $+0.00345$ \\
+German Bund & 7,065 & 1997--2024 & $-10.1827$ & $-10.1974$ & $-10.1827$ & $-10.1813$ & $-10.1834$ & $-10.0954$ & $-10.1953$ & 0.155 & 0.050 & $+0.01210$ \\
+UK Gilt & 6,640 & 1998--2024 & $-10.0860$ & $-10.0898$ & $-10.0860$ & $-10.0973$ & $-10.0978$ & $-10.0086$ & $-10.0877$ & 0.171 & 0.050 & $+0.00324$ \\
+Japanese JGB & 5,762 & 2003--2024 & $-11.6994$ & $-11.7241$ & $-11.6994$ & $-10.7647$ & $-11.7658$ & $-11.2970$ & $-11.7231$ & 0.292 & 0.050 & $+0.01481$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
