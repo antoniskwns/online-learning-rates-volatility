@@ -15,6 +15,8 @@ by Dr. Annika Camehl, on a topic proposed by Robeco. **Group work** — see
 > stacked online learners adapt the model, correct its bias, and recalibrate its tail — each
 > with a provable bound, and none needing a tuned step size.
 
+![Online-recalibrated 5% VaR on 40 years of 10-year US Treasury futures: returns with the VaR path and violations (top), and the 250-day rolling violation rate hugging the 5% target through the GFC and COVID (bottom)](assets/var_backtest.png)
+
 ## The three-layer framework
 
 - **Layer 1 — online parameter updates.** Base-model parameters are updated each step via the
